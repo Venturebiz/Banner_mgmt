@@ -76,6 +76,22 @@ public class BannerController {
         }
     }
 
+    @GetMapping("/live")
+    public ResponseEntity<Map<String, Object>> getLiveBanners() {
+        List<Banner> liveBanners = bannerService.getLiveBanners();
+
+        Map<String, Object> response = new HashMap<>();
+        if (liveBanners.isEmpty()) {
+            response.put("message", "No live banners found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+
+        response.put("message", "Live banners fetched successfully");
+        response.put("data", liveBanners);
+        return ResponseEntity.ok(response);
+    }
+
+
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteBanner(@PathVariable Long id) {
         bannerService.deleteBanner(id);

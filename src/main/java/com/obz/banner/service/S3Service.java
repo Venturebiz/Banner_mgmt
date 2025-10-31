@@ -20,6 +20,9 @@ public class S3Service {
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
+    @Value("${aws.region}")  // Add this
+    private String region;
+
     public S3Service(S3Client s3Client) {
         this.s3Client = s3Client;
     }
@@ -49,13 +52,15 @@ public class S3Service {
                 PutObjectRequest.builder()
                         .bucket(bucketName)
                         .key(key)
-                        .acl(ObjectCannedACL.PUBLIC_READ)
+                        //.acl(ObjectCannedACL.PUBLIC_READ)
                         .contentType(file.getContentType())
                         .build(),
                 RequestBody.fromBytes(file.getBytes())
         );
 
-        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+
+//        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
     }
 
     public void deleteFile(String imageUrl) {

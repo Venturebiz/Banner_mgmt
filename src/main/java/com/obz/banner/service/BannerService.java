@@ -6,6 +6,7 @@ import com.obz.banner.repository.BannerRepository;
 import jakarta.persistence.EntityNotFoundException;
 //import org.springframework.beans.factory.annotation.Value;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +20,7 @@ public class BannerService {
 
     private final S3Service s3Service;
 
+    @Autowired
     private final BannerRepository bannerRepository;
 
 //    @Value("${aws.s3.bucket}")
@@ -60,6 +62,10 @@ public void deleteBanner(Long id) {
     public Banner getBannerById(Long id) {
         return bannerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Banner not found with this ID"));
+    }
+
+    public List<Banner> getLiveBanners() {
+        return bannerRepository.findByStatus(BannerStatus.LIVE);
     }
 
 
