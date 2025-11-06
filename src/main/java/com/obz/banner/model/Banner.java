@@ -1,7 +1,7 @@
 package com.obz.banner.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "banners")
@@ -14,17 +14,22 @@ public class Banner {
     @Column(nullable = false)
     private String vendor;
 
-    @Column(nullable = false)
+    @Column(nullable = true) //changed from mandatory to not mandatory
     private String description;
 
     @Column(name = "image_url", nullable = false)
     private String imageUrl;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
+    @Column(name = "start_date", nullable = false) // added Time also
+    private LocalDateTime startDate;
 
     @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
+    private LocalDateTime endDate;
+
+    @Column(name = "website" , nullable = true) // newly added
+    private String website;
+
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -32,13 +37,14 @@ public class Banner {
 
     public Banner() {}
 
-    public Banner(Long id, String vendor, String description, String imageUrl, LocalDate startDate, LocalDate endDate, BannerStatus status) {
+    public Banner(Long id, String vendor, String description, String imageUrl, LocalDateTime startDate, LocalDateTime endDate, String website, BannerStatus status) {
         this.id = id;
         this.vendor = vendor;
         this.description = description;
         this.imageUrl = imageUrl;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.website = website;
         this.status = status;
     }
 
@@ -54,11 +60,14 @@ public class Banner {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDateTime getStartDate() { return startDate; }
+    public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
 
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public LocalDateTime getEndDate() { return endDate; }
+    public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
 
     public BannerStatus getStatus() { return status; }
     public void setStatus(BannerStatus status) { this.status = status; }
@@ -73,8 +82,9 @@ public class Banner {
         private String vendor;
         private String description;
         private String imageUrl;
-        private LocalDate startDate;
-        private LocalDate endDate;
+        private LocalDateTime startDate;
+        private LocalDateTime endDate;
+        private String website;
         private BannerStatus status;
 
         public BannerBuilder id(Long id) {
@@ -97,13 +107,18 @@ public class Banner {
             return this;
         }
 
-        public BannerBuilder startDate(LocalDate startDate) {
+        public BannerBuilder startDate(LocalDateTime startDate) {
             this.startDate = startDate;
             return this;
         }
 
-        public BannerBuilder endDate(LocalDate endDate) {
+        public BannerBuilder endDate(LocalDateTime endDate) {
             this.endDate = endDate;
+            return this;
+        }
+
+        public BannerBuilder website(String website) {
+            this.website = website;
             return this;
         }
 
@@ -113,7 +128,7 @@ public class Banner {
         }
 
         public Banner build() {
-            return new Banner(id, vendor, description, imageUrl, startDate, endDate, status);
+            return new Banner(id, vendor, description, imageUrl, startDate, endDate, website ,status);
         }
     }
 

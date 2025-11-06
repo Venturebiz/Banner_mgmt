@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +29,18 @@ public class BannerController {
     @PostMapping(value = "/add", consumes = {"multipart/form-data"})
     public ResponseEntity<Banner> uploadBanner(
             @RequestParam("vendor") String vendor,
-            @RequestParam("description") String description,
+            @RequestParam(value = "description" , required = false) String description,
             @RequestParam("startDate") String startDate,
             @RequestParam("endDate") String endDate,
+            @RequestParam(value = "website" , required = false) String website,
             @RequestPart("image") MultipartFile image
     ) throws IOException {
         Banner banner = bannerService.createBanner(
                 vendor,
                 description,
-                LocalDate.parse(startDate),
-                LocalDate.parse(endDate),
+                LocalDateTime.parse(startDate),
+                LocalDateTime.parse(endDate),
+                website,
                 image
         );
         return ResponseEntity.ok(banner);
@@ -58,14 +61,15 @@ public class BannerController {
     public ResponseEntity<?> updateBanner(
             @PathVariable Long id,
             @RequestParam("vendor") String vendor,
-            @RequestParam("description") String description,
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDate endDate,
+            @RequestParam(value = "description" , required = false) String description,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDateTime startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDateTime endDate,
+            @RequestParam(value = "website" , required = false) String website,
             @RequestPart(value = "image", required = false) MultipartFile image
 
     ) {
         try {
-            Banner updatedBanner = bannerService.updateBanner(id, vendor, description, startDate, endDate);
+            Banner updatedBanner = bannerService.updateBanner(id, vendor, description, startDate, endDate , website);
             return ResponseEntity.ok(updatedBanner);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -80,22 +84,32 @@ public class BannerController {
     public ResponseEntity<Map<String, Object>> getLiveBanners() {
         List<Banner> liveBanners = bannerService.getLiveBanners();
 
-        Map<String, Object> response = new HashMap<>();
         if (liveBanners.isEmpty()) {
-            response.put("message", "No live banners found");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            return buildErrorResponse("No live banners found", HttpStatus.NOT_FOUND);
         }
 
-        response.put("message", "Live banners fetched successfully");
-        response.put("data", liveBanners);
-        return ResponseEntity.ok(response);
+        return buildListResponse("Live banners fetched successfully", liveBanners);
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, HttpStatus status) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", message);
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @GetMapping("/upcoming")
+    public ResponseEntity<Map<String, Object>> getUpcomingBanners() {
+        List<Banner> upcomingBanners = bannerService.getUpcomingBanners();
+        return buildListResponse( "Upcoming banners fetched successfully", upcomingBanners);
     }
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteBanner(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deleteBanner(@PathVariable Long id) {
         bannerService.deleteBanner(id);
-        return ResponseEntity.ok("Banner deleted Successfully");
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Banner deleted successfully");
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/force-end")
@@ -115,19 +129,12 @@ public class BannerController {
         }
     }
 
-//    @PutMapping("/{id}/make-live-again")
-//    public ResponseEntity<Banner> makeLiveAgain(
-//            @PathVariable Long id,
-//            @RequestParam("newStartDate") String newStartDate,
-//            @RequestParam("newEndDate") String newEndDate
-//    ) {
-//        Banner banner = bannerService.makeBannerLiveAgain(
-//                id,
-//                LocalDate.parse(newStartDate),
-//                LocalDate.parse(newEndDate)
-//        );
-//        return ResponseEntity.ok(banner);
-//    }
+    private ResponseEntity<Map<String, Object>> buildListResponse(String message, List<Banner> data) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", message);
+        response.put("data", data);
+        return ResponseEntity.ok(response);
+    }
 
     //sample - to test health
     @GetMapping("/health")
