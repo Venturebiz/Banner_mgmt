@@ -84,23 +84,6 @@ public Banner updateBanner(Long id, String vendor, String description , LocalDat
     if (website != null) existing.setWebsite(website);
 
     existing.setStatus(determineStatus(existing.getStartDate(), existing.getEndDate()));
-//    if (startDate != null && !startDate.equals(existing.getStartDate()))
-//    {
-//        existing.setStartDate(startDate);
-//        dateChanged = true;
-//    }
-//
-//    if (endDate != null && !endDate.equals(existing.getEndDate())) {
-//        existing.setEndDate(endDate);
-//        dateChanged = true;
-//    }
-//    if (dateChanged) {
-//        if (existing.getEndDate() != null && existing.getEndDate().isBefore(LocalDate.now())) {
-//            existing.setStatus(BannerStatus.valueOf("EXPIRED"));
-//        } else {
-//            existing.setStatus(BannerStatus.valueOf("LIVE"));
-//        }
-//    }
     return bannerRepository.save(existing);
 }
 
@@ -141,9 +124,9 @@ private BannerStatus determineStatus(LocalDateTime start, LocalDateTime end) {
     }
 }
 
-    private void autoUpdateStatus(Banner banner) {
-        if (banner.getStatus() != BannerStatus.ENDED) {
-            banner.setStatus(determineStatus(banner.getStartDate(), banner.getEndDate()));
-        }
-    }
+private void autoUpdateStatus(Banner banner) {
+   if (banner.getStatus() != BannerStatus.ENDED) {
+       banner.setStatus(determineStatus(banner.getStartDate(), banner.getEndDate()));
+   }
+   }
 }
