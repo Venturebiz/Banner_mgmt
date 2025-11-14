@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,24 +27,34 @@ public class BannerController {
     }
 
     @PostMapping(value = "/add", consumes = {"multipart/form-data"})
-    public ResponseEntity<Banner> uploadBanner(
+    public ResponseEntity<?> uploadBanner(
             @RequestParam("vendor") String vendor,
-            @RequestParam(value = "description" , required = false) String description,
-            @RequestParam("startDate") String startDate,
+            @RequestParam(value = "description", required = false) String description,
             @RequestParam("endDate") String endDate,
-            @RequestParam(value = "website" , required = false) String website,
+            @RequestParam(value = "website", required = false) String website,
             @RequestPart("image") MultipartFile image
-    ) throws IOException {
-        Banner banner = bannerService.createBanner(
-                vendor,
-                description,
-                LocalDateTime.parse(startDate),
-                LocalDateTime.parse(endDate),
-                website,
-                image
-        );
-        return ResponseEntity.ok(banner);
+    ) {
+        try {
+            LocalDateTime end = LocalDateTime.parse(endDate);
+
+            Banner banner = bannerService.createBanner(
+                    vendor,
+                    description,
+                    end,
+                    website,
+                    image
+            );
+
+            return ResponseEntity.ok(banner);
+
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid end date format"));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Image upload failed"));
+        }
     }
+
 
     @GetMapping("/all")
     public ResponseEntity<List<Banner>> getAllBanners() {
@@ -57,26 +67,48 @@ public class BannerController {
     }
 
 
-    @PutMapping(value = "/{id}" , consumes = {"multipart/form-data"})
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<?> updateBanner(
             @PathVariable Long id,
-            @RequestParam("vendor") String vendor,
-            @RequestParam(value = "description" , required = false) String description,
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDateTime startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDateTime endDate,
-            @RequestParam(value = "website" , required = false) String website,
+            @RequestParam(value = "vendor", required = false) String vendor,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "endDate", required = false) String endDateStr,
+            @RequestParam(value = "website", required = false) String website,
             @RequestPart(value = "image", required = false) MultipartFile image
-
     ) {
         try {
-            Banner updatedBanner = bannerService.updateBanner(id, vendor, description, startDate, endDate , website);
-            return ResponseEntity.ok(updatedBanner);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error uploading image: " + e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(e.getMessage());
+
+            boolean noUpdates =
+                    (vendor == null || vendor.isBlank()) &&
+                            (description == null || description.isBlank()) &&
+                            (endDateStr == null || endDateStr.isBlank()) &&
+                            (website == null || website.isBlank()) &&
+                            (image == null || image.isEmpty());
+
+            if (noUpdates) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("error", "No fields provided to update")
+                );
+            }
+
+            LocalDateTime endDate = null;
+            if (endDateStr != null && !endDateStr.isBlank()) {
+                endDate = LocalDateTime.parse(endDateStr);
+            }
+
+            Banner updated = bannerService.updateBanner(
+                    id,
+                    vendor,
+                    description,
+                    endDate,
+                    website,
+                    image
+            );
+
+            return ResponseEntity.ok(updated);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

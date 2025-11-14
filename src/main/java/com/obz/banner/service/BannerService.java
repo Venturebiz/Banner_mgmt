@@ -32,15 +32,15 @@ public class BannerService {
 
 
     public Banner createBanner(String vendor, String description ,
-                               LocalDateTime startDate , LocalDateTime endDate , String website ,MultipartFile image) throws IOException {
+                                LocalDateTime endDate , String website ,MultipartFile image) throws IOException {
         String imageUrl = s3Service.uploadFile(image);
         Banner banner = new Banner();
                 banner.setVendor(vendor);
                 banner.setDescription(description);
-                banner.setStartDate(startDate);
+//                banner.setStartDate(startDate);
                 banner.setEndDate(endDate);
                 banner.setWebsite(website);
-                banner.setStatus(determineStatus(startDate , endDate));
+                banner.setStatus(determineStatus(LocalDateTime.now() , endDate));
                 banner.setImageUrl(imageUrl);
         return bannerRepository.save(banner);
     }
@@ -56,7 +56,18 @@ public void deleteBanner(Long id) {
 }
 
     public List<Banner> getAllBanners() {
-        return bannerRepository.findAll();
+        List<Banner> banners = bannerRepository.findAll();
+
+        return banners.stream()
+                .sorted((b1, b2) -> {
+                    int p1 = getStatusPriority(b1.getStatus());
+                    int p2 = getStatusPriority(b2.getStatus());
+
+                    if (p1 != p2) return Integer.compare(p1, p2);
+
+                    return b2.getStartDate().compareTo(b1.getStartDate());
+                })
+                .toList();
     }
 
     public Banner getBannerById(Long id) {
@@ -67,29 +78,56 @@ public void deleteBanner(Long id) {
     }
 
     public List<Banner> getLiveBanners() {
-        return bannerRepository.findByStatus(BannerStatus.LIVE);
+        LocalDateTime now = LocalDateTime.now();
+        return bannerRepository.findAll().stream()
+                .filter(b -> b.getStartDate().isBefore(now) && b.getEndDate().isAfter(now) && b.getStatus() != BannerStatus.ENDED)
+                .toList();
     }
 
 
-public Banner updateBanner(Long id, String vendor, String description , LocalDateTime
-        startDate , LocalDateTime endDate , String website) throws IOException {
-        boolean dateChanged = false;
-    Banner existing = bannerRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Banner not found"));
+    public Banner updateBanner(Long id,
+                               String vendor,
+                               String description,
+                               LocalDateTime endDate,
+                               String website,
+                               MultipartFile image) throws IOException {
 
-    if (vendor != null) existing.setVendor(vendor);
-    if (description != null) existing.setDescription(description);
-    if (startDate != null) existing.setStartDate(startDate);
-    if (endDate != null) existing.setEndDate(endDate);
-    if (website != null) existing.setWebsite(website);
+        Banner banner = bannerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Banner not found"));
 
-    existing.setStatus(determineStatus(existing.getStartDate(), existing.getEndDate()));
-    return bannerRepository.save(existing);
-}
+
+        if (vendor != null) banner.setVendor(vendor);
+        if (description != null) banner.setDescription(description);
+        if (website != null) banner.setWebsite(website);
+
+        if (endDate != null) {
+            banner.setEndDate(endDate);
+        }
+
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = s3Service.uploadFile(image);
+            banner.setImageUrl(imageUrl);
+        }
+
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (banner.getStatus() != BannerStatus.ENDED) {
+            if (banner.getEndDate().isBefore(now)) {
+                banner.setStatus(BannerStatus.EXPIRED);
+            } else {
+                banner.setStatus(BannerStatus.LIVE);
+            }
+        }
+
+        return bannerRepository.save(banner);
+    }
+
 
     public List<Banner> getUpcomingBanners() {
         return bannerRepository.findByStatus(BannerStatus.UPCOMING);
     }
+
 
 public String forceEndBanner(Long id) {
 
@@ -123,6 +161,15 @@ private BannerStatus determineStatus(LocalDateTime start, LocalDateTime end) {
         return BannerStatus.LIVE;
     }
 }
+
+    private int getStatusPriority(BannerStatus status) {
+        return switch (status) {
+            case LIVE -> 1;
+            case EXPIRED -> 2;
+            case ENDED -> 3;
+            case UPCOMING -> 4;
+        };
+    }
 
 private void autoUpdateStatus(Banner banner) {
    if (banner.getStatus() != BannerStatus.ENDED) {

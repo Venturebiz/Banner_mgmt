@@ -19,27 +19,24 @@ public class BannerStatusScheduler {
         this.bannerRepository = bannerRepository;
     }
 
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 */2 * * * *")
     public void updateStatus(){
         LocalDateTime now = LocalDateTime.now();
-
         List<Banner> banners = bannerRepository.findAll();
 
         for (Banner b : banners) {
-            if (b.getStatus() != BannerStatus.ENDED) {
-                if (b.getEndDate().isBefore(now)) {
-                    b.setStatus(BannerStatus.EXPIRED);
-                } else if (b.getStartDate().isAfter(now)) {
-                    b.setStatus(BannerStatus.UPCOMING);
-                } else {
-                    b.setStatus(BannerStatus.LIVE);
-                }
+            if (b.getStatus() == BannerStatus.ENDED) {
+                continue;
+            }
+            if (b.getEndDate().isBefore(now)) {
+                b.setStatus(BannerStatus.EXPIRED);
+            }
+            else {
+                b.setStatus(BannerStatus.LIVE);
             }
         }
 
         bannerRepository.saveAll(banners);
         System.out.println("Banner status updated at " + now);
     }
-
-
 }

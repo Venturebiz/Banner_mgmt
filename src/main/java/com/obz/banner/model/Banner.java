@@ -1,6 +1,7 @@
 package com.obz.banner.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CurrentTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,7 +21,8 @@ public class Banner {
     @Column(name = "image_url", nullable = false)
     private String imageUrl;
 
-    @Column(name = "start_date", nullable = false) // added Time also
+    @Column(name = "start_date", nullable = false)
+    @CurrentTimestamp
     private LocalDateTime startDate;
 
     @Column(name = "end_date", nullable = false)
@@ -33,7 +35,7 @@ public class Banner {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BannerStatus status; // LIVE, EXPIRED, ENDED
+    private BannerStatus status; // LIVE, EXPIRED, ENDED , UPCOMING
 
     public Banner() {}
 
@@ -131,15 +133,4 @@ public class Banner {
             return new Banner(id, vendor, description, imageUrl, startDate, endDate, website ,status);
         }
     }
-
-    // Auto-status check before persisting/updating
-//    @PrePersist
-//    @PreUpdate
-//    private void updateStatusAutomatically() {
-//        if (endDate != null && endDate.isBefore(LocalDate.now())) {
-//            this.status = BannerStatus.EXPIRED;
-//        } else if (this.status == null) {
-//            this.status = BannerStatus.LIVE;
-//        }
-//    }
 }
